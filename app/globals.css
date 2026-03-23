@@ -1,0 +1,371 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Attio-inspired Design System */
+:root {
+  /* Core Colors - Clean and Professional */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.15 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0 0);
+  
+  /* Primary - Custom Purple #4600f2 */
+  --primary: #4600f2;
+  --primary-foreground: oklch(1 0 0);
+  
+  /* Secondary and Muted - Refined Grays */
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.25 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.45 0 0);
+  --accent: oklch(0.96 0 0);
+  --accent-foreground: oklch(0.25 0 0);
+  
+  /* Status Colors */
+  --destructive: oklch(0.6 0.25 25);
+  --destructive-foreground: oklch(1 0 0);
+  
+  /* Borders and Inputs */
+  --border: oklch(0.91 0 0);
+  --input: oklch(0.91 0 0);
+  --ring: #4600f2;
+  
+  /* Chart Colors */
+  --chart-1: oklch(0.65 0.22 40);
+  --chart-2: oklch(0.6 0.12 185);
+  --chart-3: oklch(0.4 0.07 225);
+  --chart-4: oklch(0.83 0.19 85);
+  --chart-5: oklch(0.77 0.19 70);
+  
+  /* Radius - More rounded for Attio style */
+  --radius: 0.75rem;
+  
+  /* Sidebar */
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.15 0 0);
+  --sidebar-primary: #4600f2;
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.96 0 0);
+  --sidebar-accent-foreground: oklch(0.25 0 0);
+  --sidebar-border: oklch(0.91 0 0);
+  --sidebar-ring: #4600f2;
+  
+  /* Attio-specific Variables */
+  --attio-purple: #4600f2;
+  --attio-purple-light: #f0ebff;
+  --attio-purple-dark: #3600d4;
+  
+  /* Gray Scale - Attio inspired */
+  --attio-gray-50: oklch(0.98 0 0);
+  --attio-gray-100: oklch(0.96 0 0);
+  --attio-gray-200: oklch(0.91 0 0);
+  --attio-gray-300: oklch(0.78 0 0);
+  --attio-gray-400: oklch(0.6 0 0);
+  --attio-gray-500: oklch(0.46 0 0);
+  --attio-gray-600: oklch(0.32 0 0);
+  --attio-gray-700: oklch(0.23 0 0);
+  --attio-gray-800: oklch(0.15 0 0);
+  --attio-gray-900: oklch(0.1 0 0);
+  
+  /* Status Colors - Attio Style */
+  --attio-success: oklch(0.65 0.15 145);
+  --attio-success-light: oklch(0.95 0.05 145);
+  --attio-warning: oklch(0.75 0.15 85);
+  --attio-warning-light: oklch(0.95 0.05 85);
+  --attio-error: oklch(0.65 0.2 25);
+  --attio-error-light: oklch(0.95 0.05 25);
+  
+  /* Shadows - Subtle and refined */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.dark {
+  --background: oklch(0.08 0 0);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.1 0 0);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.1 0 0);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: #4600f2;
+  --primary-foreground: oklch(0.08 0 0);
+  --secondary: oklch(0.15 0 0);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.15 0 0);
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: oklch(0.15 0 0);
+  --accent-foreground: oklch(0.98 0 0);
+  --destructive: oklch(0.65 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.2 0 0);
+  --input: oklch(0.2 0 0);
+  --ring: #4600f2;
+  --sidebar: oklch(0.12 0 0);
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: #4600f2;
+  --sidebar-primary-foreground: oklch(0.08 0 0);
+  --sidebar-accent: oklch(0.15 0 0);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.2 0 0);
+  --sidebar-ring: #4600f2;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  
+  html, body {
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    letter-spacing: -0.01em;
+    line-height: 1.5;
+  }
+  
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    border-radius: 9999px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgb(218, 210, 210);
+    border-radius: 9999px;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+  }
+}
+
+@layer components {
+  /* Attio-inspired Typography Classes */
+  .attio-heading-1 {
+    @apply text-3xl font-bold leading-tight tracking-tight text-foreground;
+    letter-spacing: -0.025em;
+  }
+  
+  .attio-heading-2 {
+    @apply text-2xl font-semibold leading-tight text-foreground;
+    letter-spacing: -0.02em;
+  }
+  
+  .attio-heading-3 {
+    @apply text-xl font-semibold leading-snug text-foreground;
+    letter-spacing: -0.015em;
+  }
+  
+  .attio-body-large {
+    @apply text-lg leading-relaxed text-muted-foreground;
+  }
+  
+  .attio-body {
+    @apply text-base leading-relaxed text-muted-foreground;
+  }
+  
+  .attio-body-small {
+    @apply text-sm leading-normal text-muted-foreground;
+  }
+  
+  .attio-caption {
+    @apply text-xs font-medium leading-tight uppercase tracking-wider text-muted-foreground opacity-75;
+  }
+  
+  /* Attio-inspired Component Classes */
+  .attio-card {
+    @apply bg-card border border-border rounded-xl shadow-sm transition-all duration-200 ease-in-out;
+  }
+  
+  .attio-card:hover {
+    @apply shadow-md;
+  }
+  
+  .attio-card-interactive {
+    @apply bg-card border border-border rounded-xl shadow-sm transition-all duration-200 ease-in-out cursor-pointer;
+  }
+  
+  .attio-card-interactive:hover {
+    @apply shadow-lg -translate-y-0.5;
+  }
+  
+  .attio-button-primary {
+    @apply bg-primary text-primary-foreground border-0 rounded-lg px-6 py-3 font-medium text-sm transition-all duration-200 cursor-pointer inline-flex items-center justify-center;
+  }
+  
+  .attio-button-primary:hover {
+    @apply shadow-md -translate-y-0.5 opacity-90;
+  }
+  
+  .attio-button-secondary {
+    @apply bg-secondary text-secondary-foreground border border-border rounded-lg px-6 py-3 font-medium text-sm transition-all duration-200 cursor-pointer inline-flex items-center justify-center;
+  }
+  
+  .attio-button-secondary:hover {
+    @apply bg-muted;
+  }
+  
+  .attio-input {
+    @apply bg-background border border-border rounded-lg px-4 py-3 text-sm transition-all duration-200 outline-none w-full;
+  }
+  
+  .attio-input:focus {
+    @apply border-primary ring-2 ring-primary/20;
+  }
+  
+  .attio-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .attio-badge-success {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200;
+  }
+  
+  .attio-badge-warning {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200;
+  }
+  
+  .attio-badge-error {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200;
+  }
+  
+  .attio-badge-info {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200;
+  }
+  
+  /* Layout Classes */
+  .attio-container {
+    @apply max-w-7xl mx-auto px-6;
+  }
+  
+  .attio-page-header {
+    @apply py-8 pb-6 border-b border-border mb-8;
+  }
+  
+  .attio-section {
+    @apply mb-12;
+  }
+  
+  /* Line clamp utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Hidden scrollbar utility */
+
+}
+
+/* AI streaming cursor blink */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-cursor-blink {
+  animation: cursor-blink 0.7s step-end infinite;
+}
+
+/* AI thinking ring pulse */
+@keyframes think-ring {
+  0% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.15); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.animate-think-ring {
+  animation: think-ring 1.5s ease-out infinite;
+}
+
+/* AI shimmer gradient sweep */
+@keyframes shimmer-sweep {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer-sweep 3s linear infinite;
+}
+
+/* Follow-up chip stagger entrance */
+@keyframes chip-enter {
+  0% { opacity: 0; transform: translateY(8px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-chip-enter {
+  animation: chip-enter 0.35s ease-out both;
+}
+
+/* AI summary typewriter glow */
+@keyframes ai-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(70, 0, 242, 0); }
+  50% { box-shadow: 0 0 20px 2px rgba(70, 0, 242, 0.08); }
+}
+
+.animate-ai-glow {
+  animation: ai-glow 3s ease-in-out infinite;
+}
