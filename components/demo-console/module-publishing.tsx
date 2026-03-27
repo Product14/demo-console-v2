@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useDemoStore, DEMO_VEHICLE } from "@/lib/demo-store"
+import { ValueCallout } from "./value-callout"
 
 interface Platform {
   emoji: string
@@ -43,6 +44,7 @@ export function ModulePublishing() {
   function handlePublish() {
     setIsPublished(true)
     useDemoStore.getState().stopHoldingCost()
+    useDemoStore.getState().advanceVehicleStage("live")
   }
 
   return (
@@ -179,20 +181,9 @@ export function ModulePublishing() {
         </Button>
       </motion.div>
 
-      {/* Value callout */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-      >
-        <Card className="border-amber-200 bg-amber-50/50">
-          <CardContent className="p-4">
-            <p className="text-sm text-amber-900">
-              <strong>Your car is now market-ready, branded, and live.</strong> The ${DEMO_VEHICLE.holdingCostPerDay}/day clock stops here.
-            </p>
-          </CardContent>
-        </Card>
-      </motion.div>
+      <ValueCallout delay={0.6}>
+        <strong>Your car is now market-ready, branded, and live.</strong> The ${DEMO_VEHICLE.holdingCostPerDay}/day clock stops here.
+      </ValueCallout>
     </div>
   )
 }

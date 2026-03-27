@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Zap, TrendingUp, Layers } from "lucide-react"
@@ -11,7 +12,7 @@ const personas = [
     id: "fast" as Persona,
     title: "I want to go live faster",
     subtitle: "Cars sitting = money bleeding",
-    tag: "Used Car Manager / Ops",
+    tag: "Used Car Manager / Ops Team",
     icon: Zap,
     iconBg: "bg-purple-600",
     href: "/demo-console/fast/upload",
@@ -50,7 +51,9 @@ export default function DemoConsolePage() {
       {/* Logo */}
       <div className="flex items-center gap-2 mb-12">
         <div className="w-6 h-6 rounded bg-[#6C47FF]" />
-        <span className="text-white font-bold text-2xl">spyne</span>
+        <Link href="/" className="text-white font-bold text-2xl">
+          spyne
+        </Link>
       </div>
 
       {/* Heading */}

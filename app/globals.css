@@ -155,14 +155,14 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+html, body {
+  height: auto !important;
+  overflow: visible !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
-  }
-  
-  html, body {
-    height: 100vh;
-    overflow: hidden;
   }
   
   body {

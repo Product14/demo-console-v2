@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { DEMO_VEHICLE } from "@/lib/demo-store"
+import { DEMO_VEHICLE, useDemoStore } from "@/lib/demo-store"
+import { ValueCallout } from "./value-callout"
 
 export function ModuleSmartMatch() {
   const [isMatching, setIsMatching] = useState(false)
@@ -37,6 +38,7 @@ export function ModuleSmartMatch() {
         setMatchStep(4)
         setIsMatching(false)
         setMatched(true)
+        useDemoStore.getState().advanceVehicleStage("matched")
       }, 2000),
     ]
   }
@@ -300,25 +302,13 @@ export function ModuleSmartMatch() {
         </Card>
       </motion.div>
 
-      {/* Value callout */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={matched ? { opacity: 1, y: 0 } : { opacity: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Zap className="h-5 w-5 text-amber-600 shrink-0" />
-            <p className="text-sm text-amber-900">
-              QuickShift Autos could have saved{" "}
-              <span className="font-bold">${DEMO_VEHICLE.totalHoldingLoss}</span> on
-              just this one car.
-            </p>
-          </CardContent>
-        </Card>
-      </motion.div>
+      {matched && (
+        <ValueCallout delay={0.5}>
+          QuickShift Autos could have saved{" "}
+          <strong>${DEMO_VEHICLE.totalHoldingLoss}</strong> on just this one car.
+        </ValueCallout>
+      )}
 
-      {/* Inline shimmer keyframe */}
       <style jsx global>{`
         @keyframes shimmer {
           0% { background-position: 0% 50%; }

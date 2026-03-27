@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { DEMO_VEHICLE } from "@/lib/demo-store"
+import { DEMO_VEHICLE, useDemoStore } from "@/lib/demo-store"
+import { ValueCallout } from "./value-callout"
 
 export function ModuleUpload() {
   const [analyzing, setAnalyzing] = useState(false)
@@ -63,6 +64,8 @@ export function ModuleUpload() {
       timers.push(setTimeout(() => {
         setAnalyzing(false)
         setAnalyzed(true)
+        useDemoStore.getState().advanceVehicleStage("uploaded")
+        useDemoStore.getState().setIssues(4, 0)
       }, 3200))
     }, 500)
 
@@ -202,25 +205,14 @@ export function ModuleUpload() {
       </div>
 
       {/* Bottom value callout */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={analyzed ? { opacity: 1, y: 0 } : { opacity: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <Card className="border-amber-200 bg-amber-50/50">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-amber-600" />
-              <p className="text-sm text-amber-900">
-                Without processing, this car won&apos;t rank in the top 10 on AutoTrader. It&apos;s currently <strong>#{DEMO_VEHICLE.marketRank} of 20</strong>.
-              </p>
-            </div>
-            <Badge className="bg-purple-600 hover:bg-purple-700 text-white shrink-0">
-              Fix all automatically →
-            </Badge>
-          </CardContent>
-        </Card>
-      </motion.div>
+      {analyzed && (
+        <ValueCallout delay={0.5}>
+          Without processing, this car won&apos;t rank in the top 10 on AutoTrader. It&apos;s currently <strong>#{DEMO_VEHICLE.marketRank} of 20</strong>.
+          <Badge className="bg-purple-600 hover:bg-purple-700 text-white shrink-0 ml-3">
+            Fix all automatically →
+          </Badge>
+        </ValueCallout>
+      )}
     </div>
   )
 }

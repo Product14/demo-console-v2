@@ -21,7 +21,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { DEMO_VEHICLE } from "@/lib/demo-store"
+import { DEMO_VEHICLE, useDemoStore } from "@/lib/demo-store"
+import { ValueCallout } from "./value-callout"
 
 type TabKey = "background" | "corrections" | "compliance"
 
@@ -79,6 +80,10 @@ export function ModuleAIEnhancements() {
       timers.push(
         setTimeout(() => {
           setAppliedCorrections((prev) => [...prev, i])
+          if (i === corrections.length - 1) {
+            useDemoStore.getState().advanceVehicleStage("enhanced")
+            useDemoStore.getState().setIssues(4, 4)
+          }
         }, 600 + i * 300)
       )
     })
@@ -428,22 +433,10 @@ export function ModuleAIEnhancements() {
         </Card>
       </motion.div>
 
-      {/* Value callout */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Sparkles className="h-5 w-5 text-amber-600 shrink-0" />
-            <p className="text-sm text-amber-900">
-              Manual editing: <strong>$8–$15/image × 38 images = $304–$570</strong>. Spyne:{" "}
-              <strong>$0</strong>. Time: <strong>0 minutes</strong>.
-            </p>
-          </CardContent>
-        </Card>
-      </motion.div>
+      <ValueCallout>
+        Manual editing: <strong>$8–$15/image × 38 images = $304–$570</strong>. Spyne:{" "}
+        <strong>$0</strong>. Time: <strong>0 minutes</strong>.
+      </ValueCallout>
     </div>
   )
 }

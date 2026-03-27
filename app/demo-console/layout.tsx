@@ -9,7 +9,7 @@ export default function DemoConsoleLayout({ children }: { children: React.ReactN
 
   // When inside a persona flow (e.g. /demo-console/fast/upload),
   // don't wrap with AppShell — the persona layout provides its own chrome.
-  const isPersonaFlow = /^\/demo-console\/(fast|convert|full)/.test(pathname)
+  const isPersonaFlow = /^\/demo-console\/(fast|convert|full|studio|v2|v3)/.test(pathname)
 
   if (isPersonaFlow) {
     return <>{children}</>

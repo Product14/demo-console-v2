@@ -9,6 +9,7 @@ import {
   useDemoStore,
   getModulesForPersona,
   PERSONA_LABELS,
+  STAGE_LABELS,
   type Persona,
 } from "@/lib/demo-store"
 import {
@@ -26,9 +27,11 @@ import {
   Trophy,
   CheckCircle,
   RotateCw,
+  Database,
+  LayoutDashboard,
+  Smartphone,
+  BarChart3,
 } from "lucide-react"
-
-// ─── Icon mapping ───
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   upload: Upload,
@@ -43,23 +46,29 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   image: Image,
   box: Box,
   trophy: Trophy,
+  database: Database,
+  layout: LayoutDashboard,
+  smartphone: Smartphone,
+  "bar-chart": BarChart3,
 }
-
-// ─── Holding Cost Ticker ───
 
 function HoldingCostTicker() {
   const demoStartTime = useDemoStore((s) => s.demoStartTime)
   const holdingCostStopped = useDemoStore((s) => s.holdingCostStopped)
   const [cost, setCost] = React.useState(0)
+  const DAILY_HOLDING_COST_PER_CAR = 80
+  const UNSOLD_CARS_ON_LOT = 300
+  const DAILY_LOT_HOLDING_COST = DAILY_HOLDING_COST_PER_CAR * UNSOLD_CARS_ON_LOT
+  const HOLDING_COST_PER_SECOND = DAILY_LOT_HOLDING_COST / (24 * 60 * 60)
 
   React.useEffect(() => {
     if (!demoStartTime || holdingCostStopped) return
     const interval = setInterval(() => {
       const elapsed = (Date.now() - demoStartTime) / 1000
-      setCost(elapsed * 0.00053)
-    }, 1000)
+      setCost(elapsed * HOLDING_COST_PER_SECOND)
+    }, 250)
     return () => clearInterval(interval)
-  }, [demoStartTime, holdingCostStopped])
+  }, [demoStartTime, holdingCostStopped, HOLDING_COST_PER_SECOND])
 
   if (holdingCostStopped) {
     return (
@@ -72,13 +81,45 @@ function HoldingCostTicker() {
 
   return (
     <div className="flex flex-col items-end">
-      <span className="text-red-600 font-mono text-sm">💸 ${cost.toFixed(2)}</span>
-      <span className="text-[10px] text-gray-400 leading-none">holding cost since demo started</span>
+      <span className="text-red-600 font-mono text-sm font-semibold">
+        💸 ${cost.toFixed(2)}
+      </span>
+      <span className="text-[10px] text-gray-400 leading-none">
+        for 300 unsold cars at $80/day each
+      </span>
     </div>
   )
 }
 
-// ─── Layout ───
+function VehicleStagePill() {
+  const stage = useDemoStore((s) => s.vehicleStage)
+  const label = STAGE_LABELS[stage]
+
+  const stageColors: Record<string, string> = {
+    raw: "bg-red-100 text-red-700 border-red-200",
+    uploaded: "bg-amber-100 text-amber-700 border-amber-200",
+    matched: "bg-blue-100 text-blue-700 border-blue-200",
+    enhanced: "bg-purple-100 text-purple-700 border-purple-200",
+    "media-ready": "bg-indigo-100 text-indigo-700 border-indigo-200",
+    "campaign-set": "bg-cyan-100 text-cyan-700 border-cyan-200",
+    published: "bg-green-100 text-green-700 border-green-200",
+    live: "bg-green-100 text-green-700 border-green-200",
+  }
+
+  return (
+    <motion.div
+      key={stage}
+      initial={{ scale: 0.95, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      className={cn(
+        "text-[10px] font-medium px-2.5 py-1 rounded-full border",
+        stageColors[stage] ?? "bg-gray-100 text-gray-600"
+      )}
+    >
+      Vehicle: {label}
+    </motion.div>
+  )
+}
 
 export default function DemoPersonaLayout({
   children,
@@ -95,7 +136,6 @@ export default function DemoPersonaLayout({
   const modules = React.useMemo(() => getModulesForPersona(persona), [persona])
   const completedSteps = useDemoStore((s) => s.completedSteps)
 
-  // Determine current step index from pathname
   const currentStepId = pathname.split("/").pop() ?? ""
   const currentIndex = modules.findIndex((m) => m.id === currentStepId)
 
@@ -114,18 +154,19 @@ export default function DemoPersonaLayout({
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Top bar */}
+      {/* Top bar — 48px */}
       <header className="h-12 bg-white border-b flex items-center justify-between px-4 sticky top-0 z-30 shrink-0">
-        {/* Left */}
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded bg-[#6C47FF]" />
-          <span className="font-bold text-sm">spyne</span>
+          <Link href="/" className="font-bold text-sm">
+            spyne
+          </Link>
         </div>
 
-        {/* Center */}
-        <span className="text-sm font-medium text-gray-600">QuickShift Autos — Live Demo</span>
+        <span className="text-sm font-medium text-gray-600">
+          QuickShift Autos — Live Demo
+        </span>
 
-        {/* Right */}
         <div className="flex items-center gap-3">
           <HoldingCostTicker />
           <button
@@ -140,7 +181,7 @@ export default function DemoPersonaLayout({
             Restart
           </button>
           <div className="flex items-center gap-1.5 bg-green-100 text-green-700 text-xs rounded-full px-2 py-0.5">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             Demo Mode
           </div>
           <span className="bg-purple-100 text-purple-700 text-xs rounded-full px-2 py-0.5">
@@ -151,12 +192,17 @@ export default function DemoPersonaLayout({
 
       {/* Body */}
       <div className="flex flex-1 min-h-0">
-        {/* Sidebar */}
-        <aside className="w-56 bg-white border-r sticky top-12 h-[calc(100vh-48px-44px)] overflow-y-auto shrink-0">
-          <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 px-4 pt-4 pb-2">
+        {/* Sidebar — 220px */}
+        <aside className="w-56 bg-white border-r sticky top-12 h-[calc(100vh-48px-44px)] overflow-y-auto shrink-0 flex flex-col">
+          {/* Vehicle stage indicator */}
+          <div className="px-4 pt-4 pb-3 border-b border-gray-100">
+            <VehicleStagePill />
+          </div>
+
+          <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 px-4 pt-3 pb-2">
             Demo Modules
           </div>
-          <nav className="flex flex-col gap-0.5">
+          <nav className="flex flex-col gap-0.5 flex-1">
             {modules.map((mod, idx) => {
               const isActive = currentStepId === mod.id
               const isCompleted = completedSteps.has(idx)
@@ -173,7 +219,6 @@ export default function DemoPersonaLayout({
                     !isActive && !isCompleted && "text-gray-600 hover:bg-gray-50"
                   )}
                 >
-                  {/* Step circle */}
                   <span
                     className={cn(
                       "w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center shrink-0",
@@ -212,9 +257,8 @@ export default function DemoPersonaLayout({
         </main>
       </div>
 
-      {/* Bottom bar */}
+      {/* Bottom bar — 44px */}
       <footer className="h-11 bg-white border-t sticky bottom-0 z-20 flex items-center justify-between px-6 shrink-0">
-        {/* Back */}
         <button
           onClick={goBack}
           disabled={currentIndex <= 0}
@@ -223,7 +267,6 @@ export default function DemoPersonaLayout({
           ← Back
         </button>
 
-        {/* Progress dots */}
         <div className="flex items-center gap-1.5">
           {modules.map((_, idx) => (
             <span
@@ -238,7 +281,6 @@ export default function DemoPersonaLayout({
           ))}
         </div>
 
-        {/* Next */}
         <button
           onClick={goNext}
           disabled={currentIndex >= modules.length - 1}

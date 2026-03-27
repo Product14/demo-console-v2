@@ -5,6 +5,7 @@ import { Box, RotateCcw, ZoomIn, MapPin, ArrowRight } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ValueCallout } from "./value-callout"
 
 export function Module3DView() {
   return (
@@ -135,16 +136,9 @@ export function Module3DView() {
         </motion.div>
       </div>
 
-      {/* Value callout */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-        <Card className="border-amber-200 bg-amber-50/50">
-          <CardContent className="p-4">
-            <p className="text-sm text-amber-900">
-              <strong>No 3D scanner. No special camera.</strong> Just the images you already took.
-            </p>
-          </CardContent>
-        </Card>
-      </motion.div>
+      <ValueCallout>
+        <strong>No 3D scanner. No special camera.</strong> Just the images you already took.
+      </ValueCallout>
     </div>
   )
 }

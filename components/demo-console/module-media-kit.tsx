@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { ImageIcon, Stamp, CreditCard, Award, QrCode, Type } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { ValueCallout } from "./value-callout"
 
 const assets = [
   { label: "Dealership Hero Banner", description: "Full-width banner for listings", icon: ImageIcon },
@@ -64,16 +65,9 @@ export function ModuleMediaKit() {
         Applied to: 247 active listings
       </motion.div>
 
-      {/* Value callout */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-        <Card className="border-amber-200 bg-amber-50/50">
-          <CardContent className="p-4">
-            <p className="text-sm text-amber-900">
-              <strong>Consistent branding across your entire inventory.</strong> Set once. Updated everywhere.
-            </p>
-          </CardContent>
-        </Card>
-      </motion.div>
+      <ValueCallout>
+        <strong>Consistent branding across your entire inventory.</strong> Set once. Updated everywhere.
+      </ValueCallout>
     </div>
   )
 }
