@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useLayoutEffect, useEffect, Suspense } from "react"
+import { usePathname, useSearchParams } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { CheckCircle2, ChevronRight } from "lucide-react"
@@ -11,6 +12,8 @@ import { VehicleXRaySection } from "./sections/vehicle-xray"
 import { TransformSection } from "./sections/transform"
 import { GoLiveSection } from "./sections/go-live"
 import { ImpactSection } from "./sections/impact"
+import { ImageLightboxProvider } from "./components/image-lightbox"
+import { resolveAeKit, V8_DEMO_STORAGE_KEY } from "./ae-demo-kit"
 
 /* ═══════════════════════════════════════════════════════════════════
    TYPES
@@ -227,11 +230,34 @@ export const OBJECTION_SNIPPETS = [
 
 export const PHOTO_WORKFLOWS = ["in-house", "agency", "mixed", "unknown"]
 
+type V8Persisted = {
+  v: 1
+  savedAt: number
+  formData: FormData
+  phase: Phase
+  selectedCarId: string | null
+  transformed: boolean
+  transformedIds: string[]
+  beforeStateRevealed: boolean
+  holdingCostStopped: boolean
+}
+
+function parsePersisted(raw: string | null): V8Persisted | null {
+  if (!raw) return null
+  try {
+    const p = JSON.parse(raw) as V8Persisted
+    if (p?.v !== 1 || !p.formData || !p.phase) return null
+    return p
+  } catch {
+    return null
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    ORCHESTRATOR
    ═══════════════════════════════════════════════════════════════════ */
 
-export default function DemoConsoleV8Page() {
+function DemoConsoleV8Inner() {
   const [formData, setFormData] = useState<FormData>({
     dealerName: "Desert Valley Auto Group",
     dealerUrl: "https://desertvalley.example.com",
@@ -250,6 +276,51 @@ export default function DemoConsoleV8Page() {
   const [holdingCostStopped, setHoldingCostStopped] = useState(false)
   const [transformed, setTransformed] = useState(false)
   const [transformedIds, setTransformedIds] = useState<Set<string>>(new Set())
+  /** Until true, inventory audit hides diagnostic “before” state (issues, scores, flags). */
+  const [beforeStateRevealed, setBeforeStateRevealed] = useState(false)
+
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const aeKit = useMemo(() => resolveAeKit(searchParams.get("ae")), [searchParams])
+
+  const [resumeMeta, setResumeMeta] = useState<{ savedAt: number } | null>(null)
+
+  useEffect(() => {
+    const p = parsePersisted(localStorage.getItem(V8_DEMO_STORAGE_KEY(aeKit.id)))
+    if (p && p.phase !== "setup") setResumeMeta({ savedAt: p.savedAt })
+    else setResumeMeta(null)
+  }, [aeKit.id])
+
+  useEffect(() => {
+    if (phase === "setup") return
+    const payload: V8Persisted = {
+      v: 1,
+      savedAt: Date.now(),
+      formData,
+      phase,
+      selectedCarId,
+      transformed,
+      transformedIds: Array.from(transformedIds),
+      beforeStateRevealed,
+      holdingCostStopped,
+    }
+    localStorage.setItem(V8_DEMO_STORAGE_KEY(aeKit.id), JSON.stringify(payload))
+  }, [
+    phase,
+    formData,
+    selectedCarId,
+    transformed,
+    transformedIds,
+    beforeStateRevealed,
+    holdingCostStopped,
+    aeKit.id,
+  ])
+
+  useLayoutEffect(() => {
+    if (!pathname?.startsWith("/demo-console/v8")) return
+    const main = document.querySelector("main.flex-1.min-h-0.overflow-y-auto") as HTMLElement | null
+    if (main) main.scrollTop = 0
+  }, [pathname, phase])
 
   const selectedCar = useMemo(
     () => inventory.find((c) => c.id === selectedCarId) ?? null,
@@ -271,23 +342,60 @@ export default function DemoConsoleV8Page() {
 
   const phaseIndex = STEPS.findIndex((s) => s.key === phase)
 
+  const handleResumeDemo = useCallback(() => {
+    const p = parsePersisted(localStorage.getItem(V8_DEMO_STORAGE_KEY(aeKit.id)))
+    if (!p || p.phase === "setup") return
+
+    const inv = buildInventory(p.formData)
+    setFormData(p.formData)
+    setInventory(inv)
+
+    let carId = p.selectedCarId
+    const needsCar =
+      p.phase === "xray" || p.phase === "transform" || p.phase === "golive"
+    if (needsCar && (!carId || !inv.some((c) => c.id === carId))) {
+      const first = inv.find((c) => c.status !== "ready") ?? inv[0] ?? null
+      carId = first?.id ?? null
+    }
+    setSelectedCarId(carId)
+
+    setTransformed(p.transformed)
+    setTransformedIds(new Set(p.transformedIds))
+    setBeforeStateRevealed(p.beforeStateRevealed)
+    setHoldingCostStopped(p.holdingCostStopped)
+    setDemoStartTime(Date.now())
+    setPhase(p.phase)
+  }, [aeKit.id])
+
   function handleSetup() {
     const inv = buildInventory(formData)
     setInventory(inv)
     setDemoStartTime(Date.now())
+    setTransformed(false)
+    setTransformedIds(new Set())
+    setBeforeStateRevealed(false)
     setPhase("inventory")
   }
 
   function goTo(target: Phase) {
-    if (target === "xray" && !selectedCarId) {
-      const first = inventory.find((c) => c.status !== "ready")
-      if (first) setSelectedCarId(first.id)
+    if (target === "xray") {
+      const current = inventory.find((c) => c.id === selectedCarId)
+      if (!selectedCarId || !current || current.category === "ready") {
+        const first = inventory.find((c) => c.status !== "ready")
+        if (first) setSelectedCarId(first.id)
+      }
     }
     setPhase(target)
   }
 
   function handleSelectCar(carId: string) {
-    setSelectedCarId(carId)
+    const car = inventory.find((c) => c.id === carId)
+    if (car && car.category === "ready") {
+      const first = inventory.find((c) => c.status !== "ready")
+      if (first) setSelectedCarId(first.id)
+    } else {
+      setSelectedCarId(carId)
+    }
     setPhase("xray")
   }
 
@@ -390,7 +498,15 @@ export default function DemoConsoleV8Page() {
         <AnimatePresence mode="wait">
           {phase === "setup" && (
             <motion.div key="setup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }}>
-              <SetupSection formData={formData} setFormData={setFormData} onStart={handleSetup} />
+              <SetupSection
+                formData={formData}
+                setFormData={setFormData}
+                onStart={handleSetup}
+                aeKit={aeKit}
+                resumeAvailable={resumeMeta !== null}
+                resumeSavedAt={resumeMeta?.savedAt ?? null}
+                onResumeDemo={handleResumeDemo}
+              />
             </motion.div>
           )}
 
@@ -401,9 +517,10 @@ export default function DemoConsoleV8Page() {
                 formData={formData}
                 isCarDone={isCarDone}
                 transformed={transformed}
+                beforeStateRevealed={beforeStateRevealed}
                 onSelectCar={handleSelectCar}
+                onAnalyseInventory={() => setBeforeStateRevealed(true)}
                 onTransformAll={handleTransformAll}
-                onGoToTransform={() => goTo("transform")}
               />
             </motion.div>
           )}
@@ -459,5 +576,24 @@ export default function DemoConsoleV8Page() {
         </AnimatePresence>
       </div>
     </div>
+  )
+}
+
+export default function DemoConsoleV8Page() {
+  return (
+    <ImageLightboxProvider>
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-white flex items-center justify-center px-6">
+            <div className="flex items-center gap-3 text-gray-500 text-sm">
+              <div className="h-5 w-5 rounded bg-[#6C47FF] opacity-80 animate-pulse" />
+              Loading demo…
+            </div>
+          </div>
+        }
+      >
+        <DemoConsoleV8Inner />
+      </Suspense>
+    </ImageLightboxProvider>
   )
 }

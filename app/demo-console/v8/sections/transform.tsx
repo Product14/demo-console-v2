@@ -4,10 +4,11 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
-import { Camera, CheckCircle2, ChevronLeft, ChevronRight, Clock, DollarSign, GripVertical, ImageOff, Play, RotateCcw, Search, Send, Sparkles, Wand2, Zap } from "lucide-react"
+import { Camera, CheckCircle2, ChevronLeft, ChevronRight, Clock, DollarSign, GripVertical, ImageOff, Maximize2, Play, RotateCcw, Search, Send, Sparkles, Wand2, Zap } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { AIPipelineGraph } from "../components/ai-pipeline-graph"
+import { useImageLightbox } from "../components/image-lightbox"
 import { SpeedCounter } from "../components/speed-counter"
 import type { InventoryCar } from "../page"
 import { RAW, PROC, qualityScore } from "../page"
@@ -62,6 +63,7 @@ export function TransformSection({
   const [showValue, setShowValue] = useState(false)
   const [dividerPos, setDividerPos] = useState(50)
   const [showAnnotated, setShowAnnotated] = useState(false)
+  const [showSliderAnnotations, setShowSliderAnnotations] = useState(false)
   const [featureToggles, setFeatureToggles] = useState<Record<string, boolean>>({
     logoPlacement: true, bgRemove: true, reflection: true, numberPlate: true, shadowGen: true,
   })
@@ -75,6 +77,8 @@ export function TransformSection({
   const [bulkTransforming, setBulkTransforming] = useState(false)
   const [bulkProgress, setBulkProgress] = useState(0)
   const [bulkLabelIdx, setBulkLabelIdx] = useState(0)
+
+  const { openImage } = useImageLightbox()
 
   const car = selectedCar
   const isNoPhotos = car?.category === "no-photos"
@@ -102,6 +106,7 @@ export function TransformSection({
     setShowSplitter(false)
     setShowValue(false)
     setShowAnnotated(false)
+    setShowSliderAnnotations(false)
     setFeatureToggles({ logoPlacement: true, bgRemove: true, reflection: true, numberPlate: true, shadowGen: true })
     setRevealPct(0)
     setSmartMatchStep(0)
@@ -156,7 +161,11 @@ export function TransformSection({
     setSurgeryRunning(false)
     if (car) onTransformSingle(car.id)
     setTimeout(() => setShowPipeline(true), 500)
-    setTimeout(() => setShowSplitter(true), 1200)
+    setTimeout(() => {
+      setShowSplitter(true)
+      setShowSliderAnnotations(true)
+      setTimeout(() => setShowSliderAnnotations(false), 2000)
+    }, 1200)
     setTimeout(() => setShowAnnotated(true), 2000)
     setTimeout(() => setShowValue(true), 2800)
   }
@@ -311,7 +320,16 @@ export function TransformSection({
                               initial={{ opacity: 0, scale: 0.8, y: 20 }}
                               animate={{ opacity: 1, scale: 1, y: 0 }}
                               transition={{ duration: 0.4 }}
-                              className="relative aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 ring-2 ring-green-400"
+                              role="button"
+                              tabIndex={0}
+                              className="relative aspect-[4/3] cursor-zoom-in overflow-hidden rounded-xl bg-gray-100 ring-2 ring-green-400"
+                              onClick={() => openImage(src, `${carLabel} — Smart Match ${i + 1}`)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault()
+                                  openImage(src, `${carLabel} — Smart Match ${i + 1}`)
+                                }
+                              }}
                             >
                               <Image src={src} alt={`Smart Match ${i + 1}`} fill className="object-cover" />
                               <div className="absolute top-2 right-2">
@@ -340,8 +358,10 @@ export function TransformSection({
                 {/* Hero image with clip-path reveal */}
                 <div
                   ref={containerRef}
-                  className="relative w-full rounded-2xl overflow-hidden bg-gray-100 cursor-grab active:cursor-grabbing"
+                  className="relative w-full cursor-grab overflow-hidden rounded-2xl bg-gray-100 active:cursor-grabbing"
                   style={{ height: "65vh", maxHeight: 650 }}
+                  title="Double-click for full-size preview"
+                  onDoubleClick={() => openImage(procImg, `${carLabel} — studio output`)}
                   onMouseMove={showSplitter ? handleMouseMove : undefined}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
@@ -361,12 +381,109 @@ export function TransformSection({
                     <Image src={rawImg} alt="Raw" fill className="object-cover" />
                   </div>
 
+                  {/* "Before" issue annotations — clipped to the raw/left side, auto-hide after 2s */}
+                  <AnimatePresence>
+                    {showSliderAnnotations && car && car.issues.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="absolute inset-0 z-10 pointer-events-none transition-none"
+                        style={{ clipPath: `inset(0 ${100 - dividerPos}% 0 0)` }}
+                      >
+                        <div className="absolute top-12 left-4 space-y-2 max-w-[200px]">
+                          {car.issues.slice(0, 4).map((issue, i) => (
+                            <motion.div
+                              key={i}
+                              initial={{ opacity: 0, x: -15 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.15 }}
+                              className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg px-3 py-2"
+                            >
+                              <p className={cn(
+                                "text-xs font-semibold",
+                                issue.severity === "high" ? "text-red-600" : "text-amber-600"
+                              )}>
+                                {issue.label}
+                              </p>
+                              <p className="text-[10px] text-gray-400 mt-0.5">
+                                AI: {issue.aiModel}
+                              </p>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* "After" fix annotations — clipped to the processed/right side, auto-hide after 2s */}
+                  <AnimatePresence>
+                    {showSliderAnnotations && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="absolute inset-0 z-10 pointer-events-none transition-none"
+                        style={{ clipPath: `inset(0 0 0 ${dividerPos}%)` }}
+                      >
+                        <div className="absolute top-12 right-4 space-y-2 max-w-[200px]">
+                          {FEATURE_FIXES.map((f, i) => (
+                            <motion.div
+                              key={f.key}
+                              initial={{ opacity: 0, x: 15 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.15 }}
+                              className="bg-white/95 backdrop-blur-sm rounded-xl border border-purple-200 shadow-lg px-3 py-2"
+                            >
+                              <p className="text-xs font-semibold text-purple-600">
+                                {f.label}
+                              </p>
+                              <p className="text-[10px] text-green-500 mt-0.5">
+                                ✓ Fixed
+                              </p>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   {/* Labels */}
                   <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-medium text-gray-600">
                     {showSplitter ? "Your lot photo" : "Before"}
                   </div>
                   <div className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-medium text-purple-600">
                     {showSplitter ? "Studio AI output" : "After"}
+                  </div>
+
+                  {/* Full-size preview (visible controls — double-click still works) */}
+                  <div className="absolute bottom-4 left-4 z-30 flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      title="Full size — studio output"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openImage(procImg, `${carLabel} — studio output`)
+                      }}
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-purple-200 bg-white/95 text-purple-600 shadow-md backdrop-blur-sm transition-colors hover:bg-white"
+                      aria-label="View studio output full size"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      title="Full size — lot photo"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openImage(rawImg, `${carLabel} — lot photo`)
+                      }}
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-600 shadow-md backdrop-blur-sm transition-colors hover:bg-white"
+                      aria-label="View lot photo full size"
+                    >
+                      <span className="text-[9px] font-bold tracking-tight">RAW</span>
+                    </button>
                   </div>
 
                   {/* Speed counter */}
@@ -396,129 +513,12 @@ export function TransformSection({
               </>
             )}
 
-            {/* AI Pipeline Graph */}
-            {showPipeline && <AIPipelineGraph delay={0} />}
-
-            {/* Annotated output — what Spyne fixed */}
-            {showAnnotated && !isNoPhotos && (
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-4"
-              >
-                <p className="text-center text-sm font-medium text-gray-500 uppercase tracking-wider">
-                  What Spyne fixed
-                </p>
-
-                <div
-                  className="relative w-full rounded-2xl overflow-hidden bg-gray-100"
-                  style={{ aspectRatio: "16/10" }}
-                >
-                  {/* Raw image (base layer — visible when toggles are off) */}
-                  <Image src={rawImg} alt="Before" fill className="object-cover" />
-
-                  {/* Processed image (overlay — fades based on active toggles) */}
-                  <div
-                    className="absolute inset-0 transition-opacity duration-500"
-                    style={{ opacity: featureBlendOpacity }}
-                  >
-                    <Image src={procImg} alt="After" fill className="object-cover" />
-                  </div>
-
-                  {/* Dashed car outline */}
-                  <div className="absolute top-[18%] left-[12%] right-[12%] bottom-[12%] border-2 border-dashed border-white/40 rounded-3xl pointer-events-none z-10" />
-
-                  {/* Elliptical floor reflection indicator */}
-                  {featureToggles.reflection && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute bottom-[5%] left-[18%] right-[18%] h-[10%] pointer-events-none z-10"
-                    >
-                      <svg className="w-full h-full" viewBox="0 0 200 40" preserveAspectRatio="none">
-                        <ellipse
-                          cx="100" cy="20" rx="95" ry="18"
-                          fill="none" stroke="rgba(255,255,255,0.4)"
-                          strokeWidth="1.5" strokeDasharray="6,4"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                      </svg>
-                    </motion.div>
-                  )}
-
-                  {/* Feature annotation labels */}
-                  <AnimatePresence>
-                    {FEATURE_FIXES.map(f => !!featureToggles[f.key] && (
-                      <motion.div
-                        key={f.key}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.3 }}
-                        className="absolute z-20"
-                        style={{ top: f.top, left: f.left }}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-7 h-7 rounded-full bg-purple-600 border-2 border-white shadow-lg flex items-center justify-center shrink-0">
-                            <span className="text-white text-[10px] font-bold">S</span>
-                          </div>
-                          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-2.5 py-1.5 shadow-lg">
-                            <p className="text-xs font-semibold text-white whitespace-nowrap">{f.label}</p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-
-                  {/* Image counter */}
-                  <div className="absolute top-3 right-3 z-20 bg-black/50 rounded-full px-2.5 py-1">
-                    <p className="text-[11px] text-white/80 font-medium">1 / 10</p>
-                  </div>
-
-                  {/* Nav arrows */}
-                  <button className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm shadow flex items-center justify-center hover:bg-white transition-colors">
-                    <ChevronLeft className="h-4 w-4 text-gray-700" />
-                  </button>
-                  <button className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm shadow flex items-center justify-center hover:bg-white transition-colors">
-                    <ChevronRight className="h-4 w-4 text-gray-700" />
-                  </button>
-                </div>
-
-                {/* Feature toggle switches */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {FEATURE_FIXES.map(f => (
-                    <div
-                      key={f.key}
-                      className={cn(
-                        "flex items-center justify-between rounded-xl border px-4 py-3 transition-all",
-                        featureToggles[f.key]
-                          ? "bg-white border-purple-200 shadow-sm"
-                          : "bg-gray-50 border-gray-200"
-                      )}
-                    >
-                      <span className={cn(
-                        "text-sm font-medium transition-colors",
-                        featureToggles[f.key] ? "text-gray-800" : "text-gray-400 line-through"
-                      )}>
-                        {f.label}
-                      </span>
-                      <Switch
-                        checked={!!featureToggles[f.key]}
-                        onCheckedChange={() => toggleFeature(f.key)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
             {/* 360 + Video */}
             {showPipeline && (
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
+                transition={{ duration: 0.25 }}
                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
               >
                 {/* 360 Spin */}
@@ -560,10 +560,28 @@ export function TransformSection({
                 {/* Video Walkthrough */}
                 <div className="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
                   <div className="aspect-[16/9] relative bg-gradient-to-b from-gray-800 to-gray-900 flex items-center justify-center">
-                    <Image src={procImg} alt="Video preview" fill className="object-cover opacity-60" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
-                    <button className="relative z-10 w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
-                      <Play className="h-7 w-7 text-gray-900 ml-1" />
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className="absolute inset-0 z-0 cursor-zoom-in"
+                      onClick={() => openImage(procImg, `${carLabel} — video still`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          openImage(procImg, `${carLabel} — video still`)
+                        }
+                      }}
+                      aria-label="View video still full size"
+                    >
+                      <Image src={procImg} alt="Video preview" fill className="object-cover opacity-60" />
+                    </div>
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+                    <button
+                      type="button"
+                      className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-xl transition-transform hover:scale-105"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Play className="ml-1 h-7 w-7 text-gray-900" />
                     </button>
                     <div className="absolute bottom-3 left-3 z-10">
                       <p className="text-white text-xs font-semibold">Video Walkthrough</p>
@@ -592,6 +610,137 @@ export function TransformSection({
                       ))}
                     </div>
                   </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* AI Pipeline Graph */}
+            {showPipeline && <AIPipelineGraph delay={0.12} />}
+
+            {/* Annotated output — what Spyne fixed */}
+            {showAnnotated && !isNoPhotos && (
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-4"
+              >
+                <p className="text-center text-sm font-medium text-gray-500 uppercase tracking-wider">
+                  What Spyne fixed
+                </p>
+
+                <div
+                  className="relative w-full cursor-zoom-in overflow-hidden rounded-2xl bg-gray-100"
+                  style={{ aspectRatio: "16/10" }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openImage(procImg, `${carLabel} — Spyne output`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      openImage(procImg, `${carLabel} — Spyne output`)
+                    }
+                  }}
+                  aria-label="View Spyne output full size"
+                >
+                  <Image src={rawImg} alt="Before" fill className="object-cover" />
+
+                  <div
+                    className="absolute inset-0 transition-opacity duration-500"
+                    style={{ opacity: featureBlendOpacity }}
+                  >
+                    <Image src={procImg} alt="After" fill className="object-cover" />
+                  </div>
+
+                  <div className="absolute top-[18%] left-[12%] right-[12%] bottom-[12%] border-2 border-dashed border-white/40 rounded-3xl pointer-events-none z-10" />
+
+                  {featureToggles.reflection && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute bottom-[5%] left-[18%] right-[18%] h-[10%] pointer-events-none z-10"
+                    >
+                      <svg className="w-full h-full" viewBox="0 0 200 40" preserveAspectRatio="none">
+                        <ellipse
+                          cx="100" cy="20" rx="95" ry="18"
+                          fill="none" stroke="rgba(255,255,255,0.4)"
+                          strokeWidth="1.5" strokeDasharray="6,4"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      </svg>
+                    </motion.div>
+                  )}
+
+                  <AnimatePresence>
+                    {FEATURE_FIXES.map(f => !!featureToggles[f.key] && (
+                      <motion.div
+                        key={f.key}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.3 }}
+                        className="absolute z-20"
+                        style={{ top: f.top, left: f.left }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-7 h-7 rounded-full bg-purple-600 border-2 border-white shadow-lg flex items-center justify-center shrink-0">
+                            <span className="text-white text-[10px] font-bold">S</span>
+                          </div>
+                          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-2.5 py-1.5 shadow-lg">
+                            <p className="text-xs font-semibold text-white whitespace-nowrap">{f.label}</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+
+                  <div
+                    className="absolute right-3 top-3 z-20 rounded-full bg-black/50 px-2.5 py-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p className="text-[11px] font-medium text-white/80">1 / 10</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="absolute left-3 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 shadow backdrop-blur-sm transition-colors hover:bg-white"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ChevronLeft className="h-4 w-4 text-gray-700" />
+                  </button>
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 shadow backdrop-blur-sm transition-colors hover:bg-white"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ChevronRight className="h-4 w-4 text-gray-700" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {FEATURE_FIXES.map(f => (
+                    <div
+                      key={f.key}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl border px-4 py-3 transition-all",
+                        featureToggles[f.key]
+                          ? "bg-white border-purple-200 shadow-sm"
+                          : "bg-gray-50 border-gray-200"
+                      )}
+                    >
+                      <span className={cn(
+                        "text-sm font-medium transition-colors",
+                        featureToggles[f.key] ? "text-gray-800" : "text-gray-400 line-through"
+                      )}>
+                        {f.label}
+                      </span>
+                      <Switch
+                        checked={!!featureToggles[f.key]}
+                        onCheckedChange={() => toggleFeature(f.key)}
+                      />
+                    </div>
+                  ))}
                 </div>
               </motion.div>
             )}
@@ -678,10 +827,27 @@ export function TransformSection({
                 return (
                   <div
                     key={car.id}
+                    role="button"
+                    tabIndex={0}
                     className={cn(
-                      "relative aspect-square rounded-lg overflow-hidden transition-all duration-300",
+                      "relative aspect-square cursor-zoom-in overflow-hidden rounded-lg transition-all duration-300",
                       done ? "ring-2 ring-green-400" : "ring-1 ring-gray-200"
                     )}
+                    onClick={() =>
+                      openImage(
+                        done ? procThumb : rawThumb,
+                        `${car.year} ${car.make} ${car.model}`,
+                      )
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        openImage(
+                          done ? procThumb : rawThumb,
+                          `${car.year} ${car.make} ${car.model}`,
+                        )
+                      }
+                    }}
                   >
                     <Image
                       src={done ? procThumb : rawThumb}

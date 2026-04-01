@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
-import { ArrowLeft, ImageOff, Wand2 } from "lucide-react"
+import { AlertTriangle, ArrowLeft, CheckCircle2, ImageOff, Wand2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ScoreRing } from "../components/score-ring"
+import { useImageLightbox } from "../components/image-lightbox"
 import type { InventoryCar } from "../page"
 import { RAW, qualityScore } from "../page"
 
@@ -46,8 +47,11 @@ export function VehicleXRaySection({
 }) {
   const [scanDone, setScanDone] = useState(false)
   const [visibleBoxes, setVisibleBoxes] = useState(0)
+  const [showBoxes, setShowBoxes] = useState(true)
   const [showScore, setShowScore] = useState(false)
   const [showCta, setShowCta] = useState(false)
+
+  const { openImage } = useImageLightbox()
 
   const isNoPhotos = car.category === "no-photos"
   const heroImage = RAW(3)
@@ -58,6 +62,7 @@ export function VehicleXRaySection({
   useEffect(() => {
     setScanDone(false)
     setVisibleBoxes(0)
+    setShowBoxes(true)
     setShowScore(false)
     setShowCta(false)
 
@@ -76,18 +81,22 @@ export function VehicleXRaySection({
       setTimeout(() => setVisibleBoxes(i + 1), 2200 + i * 700)
     )
 
+    const allBoxesTime = 2200 + boxes.length * 700
+    const hideBoxesTimer = setTimeout(() => setShowBoxes(false), allBoxesTime + 2000)
+
     const scoreTimer = setTimeout(
       () => setShowScore(true),
-      2200 + boxes.length * 700 + 500
+      allBoxesTime + 500
     )
     const ctaTimer = setTimeout(
       () => setShowCta(true),
-      2200 + boxes.length * 700 + 1200
+      allBoxesTime + 1200
     )
 
     return () => {
       clearTimeout(scanTimer)
       boxTimers.forEach(clearTimeout)
+      clearTimeout(hideBoxesTimer)
       clearTimeout(scoreTimer)
       clearTimeout(ctaTimer)
     }
@@ -110,7 +119,28 @@ export function VehicleXRaySection({
         </div>
       </div>
 
-      {isNoPhotos ? (
+      {car.category === "ready" ? (
+        <>
+          <div className="relative w-full rounded-2xl overflow-hidden bg-green-50 border-2 border-green-200" style={{ height: "50vh", maxHeight: 500 }}>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+              <div className="w-20 h-20 rounded-2xl bg-green-100 flex items-center justify-center">
+                <CheckCircle2 className="h-10 w-10 text-green-500" />
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-bold text-gray-900">All clear — no issues found</p>
+                <p className="text-sm text-gray-500 mt-1 max-w-md">
+                  This vehicle is already listing-ready with studio-quality photos.
+                  <br />
+                  Select a different vehicle from inventory to see the AI X-Ray in action.
+                </p>
+              </div>
+              <div className="px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 mt-2">
+                <p className="text-xs font-semibold text-green-600">Media Score: {score}/100</p>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : isNoPhotos ? (
         <>
           {/* No-photos empty state */}
           <div className="relative w-full rounded-2xl overflow-hidden bg-gray-50 border-2 border-dashed border-gray-200" style={{ height: "50vh", maxHeight: 500 }}>
@@ -140,7 +170,13 @@ export function VehicleXRaySection({
       ) : (
         <>
           {/* Hero image with overlays */}
-          <div className="relative w-full rounded-2xl overflow-hidden bg-gray-100" style={{ height: "70vh", maxHeight: 700 }}>
+          <button
+            type="button"
+            className="relative w-full cursor-zoom-in overflow-hidden rounded-2xl border-0 bg-gray-100 p-0 text-left"
+            style={{ height: "70vh", maxHeight: 700 }}
+            onClick={() => openImage(heroImage, carLabel)}
+            aria-label="View X-Ray image full size"
+          >
             <Image
               src={heroImage}
               alt={carLabel}
@@ -161,59 +197,124 @@ export function VehicleXRaySection({
               }}
             />
 
-            {/* Bounding boxes */}
-            {boxes.map((box, i) =>
-              i < visibleBoxes ? (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4 }}
-                  className="absolute z-20"
-                  style={{ top: box.top, left: box.left, width: box.width, height: box.height }}
-                >
-                  <div
-                    className={cn(
-                      "w-full h-full border-2 border-dashed rounded-lg",
-                      box.severity === "high"
-                        ? "border-red-400 bg-red-500/5"
-                        : box.severity === "medium"
-                        ? "border-amber-400 bg-amber-500/5"
-                        : "border-gray-400 bg-gray-500/5"
-                    )}
-                  />
-                </motion.div>
-              ) : null
-            )}
-
-            {/* Labels on the right margin */}
-            <div className="absolute top-4 right-4 z-30 space-y-3 max-w-[220px]">
-              {boxes.map((box, i) =>
+            {/* Bounding boxes — auto-hide after 2s */}
+            <AnimatePresence>
+              {showBoxes && boxes.map((box, i) =>
                 i < visibleBoxes ? (
                   <motion.div
                     key={i}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.4 }}
-                    className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg px-3 py-2"
+                    className="absolute z-20"
+                    style={{ top: box.top, left: box.left, width: box.width, height: box.height }}
                   >
-                    <p
+                    <div
                       className={cn(
-                        "text-xs font-semibold",
-                        box.severity === "high" ? "text-red-600" : "text-amber-600"
+                        "w-full h-full border-2 border-dashed rounded-lg",
+                        box.severity === "high"
+                          ? "border-red-400 bg-red-500/5"
+                          : box.severity === "medium"
+                          ? "border-amber-400 bg-amber-500/5"
+                          : "border-gray-400 bg-gray-500/5"
                       )}
-                    >
-                      {box.label}
-                    </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
-                      AI: {box.aiModel}
-                    </p>
+                    />
                   </motion.div>
                 ) : null
               )}
-            </div>
-          </div>
+            </AnimatePresence>
+
+            {/* Labels on the right margin — auto-hide after 2s */}
+            <AnimatePresence>
+              {showBoxes && (
+                <motion.div
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="absolute top-4 right-4 z-30 space-y-3 max-w-[220px]"
+                >
+                  {boxes.map((box, i) =>
+                    i < visibleBoxes ? (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg px-3 py-2"
+                      >
+                        <p
+                          className={cn(
+                            "text-xs font-semibold",
+                            box.severity === "high" ? "text-red-600" : "text-amber-600"
+                          )}
+                        >
+                          {box.label}
+                        </p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          AI: {box.aiModel}
+                        </p>
+                      </motion.div>
+                    ) : null
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </button>
         </>
+      )}
+
+      {/* Issues list below the photo */}
+      {!isNoPhotos && visibleBoxes > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-2"
+        >
+          <p className="text-sm font-semibold text-gray-900">
+            {car.issues.length} issue{car.issues.length !== 1 ? "s" : ""} detected
+          </p>
+          <div className="space-y-2">
+            {car.issues.map((issue, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className={cn(
+                  "flex items-start gap-3 rounded-xl border px-4 py-3",
+                  issue.severity === "high"
+                    ? "border-red-200 bg-red-50/50"
+                    : issue.severity === "medium"
+                    ? "border-amber-200 bg-amber-50/50"
+                    : "border-gray-200 bg-gray-50/50"
+                )}
+              >
+                <AlertTriangle className={cn(
+                  "h-4 w-4 mt-0.5 shrink-0",
+                  issue.severity === "high" ? "text-red-500" : issue.severity === "medium" ? "text-amber-500" : "text-gray-400"
+                )} />
+                <div className="min-w-0">
+                  <p className={cn(
+                    "text-sm font-semibold",
+                    issue.severity === "high" ? "text-red-700" : issue.severity === "medium" ? "text-amber-700" : "text-gray-700"
+                  )}>
+                    {issue.label}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">{issue.detail}</p>
+                  {issue.aiModel && (
+                    <p className="text-[10px] text-purple-500 mt-1 font-medium">Fix: {issue.aiModel}</p>
+                  )}
+                </div>
+                <span className={cn(
+                  "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0",
+                  issue.severity === "high" ? "bg-red-100 text-red-600" : issue.severity === "medium" ? "bg-amber-100 text-amber-600" : "bg-gray-100 text-gray-500"
+                )}>
+                  {issue.severity}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       )}
 
       {/* Score badge */}
